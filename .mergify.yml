@@ -1,0 +1,54 @@
+# Configuration Mergify partagée pour les dépôts de l'organisation Tradoooo.
+# Les dépôts ciblés contiennent seulement :
+#   extends: mergify-config
+#
+# Périmètre : dépôts dont la CI expose les checks `ci` et `ci-budget`.
+# La file accepte `main` et `master` ; le label `hold` garde une PR hors file.
+
+queue_rules:
+  - name: default
+    queue_conditions:
+      - base ~= ^(main|master)$
+      - -draft
+      - -conflict
+      - -label = hold
+      - check-success = ci
+      - check-success = ci-budget
+    batch_size:
+      min: 1
+      max: 3
+    batch_max_wait_time: "30 seconds"
+    max_checks_retries: 1
+    checks_timeout: 20 min
+    merge_method: squash
+    # Merge de la base dans la PR : jamais de force-push de la branche.
+    update_method: merge
+
+priority_rules:
+  - name: urgent
+    conditions:
+      - label = urgent
+    priority: high
+  - name: priority-low
+    conditions:
+      - label = priority-low
+    priority: low
+
+merge_queue:
+  max_parallel_checks: 4
+
+# Auto-merge : une PR qui satisfait les protections entre en file.
+# Nécessite les produits Merge Queue et Merge Protections activés sur le dépôt.
+merge_protections_settings:
+  auto_merge_conditions: true
+
+merge_protections:
+  - name: ci-green
+    if:
+      - base ~= ^(main|master)$
+    success_conditions:
+      - check-success = ci
+      - check-success = ci-budget
+      - -draft
+      - -conflict
+      - -label = hold
